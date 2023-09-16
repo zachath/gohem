@@ -26,6 +26,10 @@ type Property struct {
 	RemovedDate        string      `json:"removedDate,omitempty"`
 }
 
+type Properties struct {
+	Properties []Property `json:"properties"`
+}
+
 func (p *Property) AddField(keyValuePairs ...string) ([]string, error) {
 	if len(keyValuePairs) < 2 {
 		return keyValuePairs, nil

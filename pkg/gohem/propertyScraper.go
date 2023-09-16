@@ -1,6 +1,7 @@
 package gohem
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,25 +14,25 @@ import (
 
 var bostadRegex = regexp.MustCompile(`^https:\/\/www\.hemnet\.se\/bostad\/\S*$`)
 
-func ScrapeSearch(url string) ([]Property, error) {
+func ScrapeSearch(url string) (Properties, error) {
 	urls, err := collectUrls(url)
 	if err != nil {
-		return nil, errors.WithMessage(err, "failed to collect urls")
+		return Properties{}, errors.WithMessage(err, "failed to collect urls")
 	}
 
 	wg := sync.WaitGroup{}
 	mu := sync.Mutex{}
-	properties := &[]Property{}
+	properties := &Properties{}
 	for _, url := range urls {
 		wg.Add(1)
-		go func(url string, properties *[]Property) {
+		go func(url string, properties *Properties) {
 			defer wg.Done()
 			property, err := ScrapeProperty(url)
 			if err != nil {
 				log.Error().Stack().Err(err).Msg("failed to scrape property")
 			} else {
 				mu.Lock()
-				*properties = append(*properties, property)
+				properties.Properties = append(properties.Properties, property)
 				mu.Unlock()
 			}
 		}(url, properties)
@@ -45,15 +46,27 @@ func collectUrls(url string) ([]string, error) {
 	collector := colly.NewCollector()
 
 	urls := []string{}
+	nextPage := ""
 	collector.OnHTML("a", func(h *colly.HTMLElement) {
 		if bostadRegex.MatchString(h.Attr("href")) {
 			urls = append(urls, h.Attr("href"))
+		} else if h.Attr("rel") == "next" && nextPage == "" {
+			nextPage = h.Attr("href")
 		}
 	})
 
 	err := collector.Visit(url)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to visit url")
+	}
+
+	if nextPage != "" {
+		nextUrls, err := collectUrls(fmt.Sprintf("https://www.hemnet.se%s", nextPage))
+		if err != nil {
+			return nil, errors.WithMessage(err, "failed to collect urls from next page")
+		}
+
+		urls = append(urls, nextUrls...)
 	}
 
 	return urls, nil
@@ -154,7 +167,11 @@ func scrapeRemoved(url string) (Property, error) {
 
 	collector.OnHTML("span", func(h *colly.HTMLElement) {
 		if h.Attr("class") == "removed-listing__heading" {
-			property.RemovedDate = h.ChildTexts("*")[0]
+			if len(h.ChildTexts("*")) < 1 {
+				property.RemovedDate = "Unknown"
+			} else {
+				property.RemovedDate = h.ChildTexts("*")[0]
+			}
 		}
 	})
 
@@ -219,6 +236,7 @@ func addressFunc(property *Property) func(*colly.HTMLElement) {
 	}
 }
 
+// TODO: Handle "PrissaknasBevakaslutpriset"
 func convertPrice(text string) (int, error) {
 	ss := strings.Fields(text)
 	aString := strings.Join(ss, "")

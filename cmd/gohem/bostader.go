@@ -3,36 +3,45 @@ package gohem
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/zachath/gohem/pkg/gohem"
 )
 
-var toFile bool
-var bostadCmd = &cobra.Command{
-	Use:   "bostad",
-	Short: "Scrape a property",
+// TODO: Handle '&'s in url when executing command.
+var bostaderCmd = &cobra.Command{
+	Use:   "bostader",
+	Short: "Scrape properties of search result",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		property, err := gohem.ScrapeProperty(args[0]) //TODO func ensureing this is an actual bostad hemnet link.
+		properties, err := gohem.ScrapeSearch(args[0])
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s", err.Error())
+			return
 		}
 
 		if toFile {
-			jason, err := json.Marshal(property)
+			jason, err := json.Marshal(properties)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Encountered an error: %s", err.Error())
 				return
 			}
-			err = os.WriteFile(fmt.Sprintf("%s.json", property.Address), jason, 0644)
+
+			url, err := url.Parse(args[0])
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Encountered an error: %s", err.Error())
+				return
+			}
+
+			err = os.WriteFile(fmt.Sprintf("%s.json", url.RawQuery), jason, 0644)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Encountered an error: %s", err.Error())
 				return
 			}
 		} else {
-			s, err := json.MarshalIndent(property, "", "\t")
+			s, err := json.MarshalIndent(properties, "", "\t")
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Encountered an error: %s", err.Error())
 				return
@@ -44,6 +53,6 @@ var bostadCmd = &cobra.Command{
 }
 
 func init() {
-	bostadCmd.Flags().BoolVarP(&toFile, "file", "f", false, "Write to file")
-	rootCmd.AddCommand(bostadCmd)
+	bostaderCmd.Flags().BoolVarP(&toFile, "file", "f", false, "Write to file")
+	rootCmd.AddCommand(bostaderCmd)
 }

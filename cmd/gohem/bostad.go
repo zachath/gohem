@@ -15,7 +15,13 @@ var bostadCmd = &cobra.Command{
 	Short: "Scrape a property",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		property, err := gohem.ScrapeProperty(args[0]) //TODO func ensureing this is an actual bostad hemnet link.
+		arg := args[0]
+		if !gohem.BostadRegex.MatchString(arg) {
+			fmt.Fprintln(os.Stderr, "Provided link does not match a hemnet /bostad link.")
+			return
+		}
+
+		property, err := gohem.ScrapeProperty(arg)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s", err.Error())
 		}

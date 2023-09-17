@@ -12,7 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var bostadRegex = regexp.MustCompile(`^https:\/\/www\.hemnet\.se\/bostad\/\S*$`)
+var BostadRegex = regexp.MustCompile(`^https:\/\/www\.hemnet\.se\/bostad\/\S*$`)
+var BostaderRegex = regexp.MustCompile(`^https:\/\/www\.hemnet\.se\/bostader\S*$`)
 
 func ScrapeSearch(url string) (Properties, error) {
 	urls, err := collectUrls(url)
@@ -48,7 +49,7 @@ func collectUrls(url string) ([]string, error) {
 	urls := []string{}
 	nextPage := ""
 	collector.OnHTML("a", func(h *colly.HTMLElement) {
-		if bostadRegex.MatchString(h.Attr("href")) {
+		if BostadRegex.MatchString(h.Attr("href")) {
 			urls = append(urls, h.Attr("href"))
 		} else if h.Attr("rel") == "next" && nextPage == "" {
 			nextPage = h.Attr("href")
@@ -236,7 +237,6 @@ func addressFunc(property *Property) func(*colly.HTMLElement) {
 	}
 }
 
-// TODO: Handle "PrissaknasBevakaslutpriset"
 func convertPrice(text string) (int, error) {
 	ss := strings.Fields(text)
 	aString := strings.Join(ss, "")

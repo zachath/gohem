@@ -10,13 +10,18 @@ import (
 	"github.com/zachath/gohem/pkg/gohem"
 )
 
-// TODO: Handle '&'s in url when executing command.
 var bostaderCmd = &cobra.Command{
 	Use:   "bostader",
 	Short: "Scrape properties of search result",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		properties, err := gohem.ScrapeSearch(args[0])
+		arg := args[0]
+		if !gohem.BostaderRegex.MatchString(arg) {
+			fmt.Fprintln(os.Stderr, "Provided link does not match a hemnet /bostader link.")
+			return
+		}
+
+		properties, err := gohem.ScrapeSearch(arg)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s", err.Error())
 			return

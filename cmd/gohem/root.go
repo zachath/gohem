@@ -10,8 +10,8 @@ import (
 var rootCmd = &cobra.Command{
 	Use:     "gohem",
 	Version: "0.1.0",
-	Short:   "tmp",
-	Long:    `tmp`,
+	Short:   "gohem - tool for scraping https://www.hemnet.se",
+	Long:    `gohem is a tool for scraping either single or multiple properties listed on hemnet.se All output is in JSON.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 	},
